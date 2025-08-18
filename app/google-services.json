@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "857659224159",
+    "project_id": "spotmytrash",
+    "storage_bucket": "spotmytrash.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:857659224159:android:2512ea388ef1a3f61d6bea",
+        "android_client_info": {
+          "package_name": "spotmytrash.android"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDugQXfPprHjki0H2k2vkoQZojOOoRJoas"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
