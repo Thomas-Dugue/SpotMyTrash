@@ -22,7 +22,6 @@
         "android.permission.CAMERA",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION"
-        // "android.permission.RECORD_AUDIO" // solo si vas a grabar video con audio
       ]
     },
     "web": {
@@ -42,6 +41,13 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
+      ],
+      [
+        "@rnmapbox/maps",
+        {
+          "RNMapboxMapsImpl": "mapbox",
+          "RNMapboxMapsDownloadToken": "sk.eyJ1IjoibXJzb3lvdXoiLCJhIjoiY21lajZwMGc5MGE5bDJscTBqYmNsenFmZCJ9.ACEIRjIUlKncxSlmtcNi8Q"
+        }
       ]
     ],
     "experiments": {
@@ -49,4 +55,3 @@
     }
   }
 }
-

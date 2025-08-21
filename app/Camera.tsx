@@ -92,22 +92,53 @@ export default function CameraScreen() {
   };
 
   const createGarbagePoint = async (gps: GPS, photoId: string) => {
-    try {
-      console.log("\uD83D\uDEE0 createGarbagePoint() ejecutado con:", gps, photoId);
-      const docRef = await addDoc(collection(db, "garbagePoints"), {
-        gps: {
-          latitude: gps?.latitude,
-          longitude: gps?.longitude,
-          ...(gps?.accuracy !== undefined && gps?.accuracy !== null && { accuracy: gps.accuracy }),
-        },
-        photoId,
-        createdAt: serverTimestamp(),
-      });
-      console.log("\uD83D\uDCCD Punto de basura creado:", docRef.id);
-    } catch (error) {
-      console.error("❌ Error al crear garbagePoint:", JSON.stringify(error));
+  try {
+    console.log("🚀 createGarbagePoint INICIADO");
+    console.log("📍 GPS recibido:", JSON.stringify(gps));
+    console.log("🆔 PhotoId recibido:", photoId);
+
+    // Validación estricta de parámetros
+    if (!gps) {
+      throw new Error("GPS es null o undefined");
     }
-  };
+    
+    if (!gps.latitude || !gps.longitude) {
+      throw new Error(`GPS incompleto - lat: ${gps.latitude}, lon: ${gps.longitude}`);
+    }
+    
+    if (!photoId || photoId.trim() === "") {
+      throw new Error("PhotoId vacío o inválido");
+    }
+
+    // Preparar datos para Firestore
+    const garbagePointData = {
+      gps: {
+        latitude: gps.latitude,
+        longitude: gps.longitude,
+        ...(gps.accuracy !== undefined && gps.accuracy !== null && { accuracy: gps.accuracy }),
+      },
+      photoId: photoId.trim(),
+      createdAt: serverTimestamp(),
+    };
+
+    console.log("📝 Datos a guardar:", JSON.stringify(garbagePointData));
+
+    // Intentar crear el documento
+    const docRef = await addDoc(collection(db, "garbagePoints"), garbagePointData);
+    
+    console.log("✅ GarbagePoint creado exitosamente con ID:", docRef.id);
+    return docRef.id;
+    
+  } catch (error) {
+    console.error("❌ ERROR DETALLADO en createGarbagePoint:");
+    console.error("- Tipo de error:", error.constructor.name);
+    console.error("- Mensaje:", error.message);
+    console.error("- Stack:", error.stack);
+    
+    // Re-lanzar el error para que se maneje en uploadToFirebase
+    throw error;
+  }
+};
 
   const uploadToFirebase = async (uri: string, meta: any) => {
     console.log("\uD83D\uDE80 uploadToFirebase() INICIADO");
