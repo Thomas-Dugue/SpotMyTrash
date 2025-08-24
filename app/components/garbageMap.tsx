@@ -1,6 +1,6 @@
-// components/GarbageMap.tsx
+// components/garbageMap.tsx
 import * as Location from 'expo-location';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { WebView } from 'react-native-webview';
@@ -30,6 +30,7 @@ export default function GarbageMap() {
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [latestPointId, setLatestPointId] = useState<string | null>(null);
 
   // Función para obtener la ubicación actual del usuario
   const getUserLocation = async (): Promise<UserLocation | null> => {
@@ -62,15 +63,28 @@ export default function GarbageMap() {
   const loadGarbagePoints = async (): Promise<GarbagePoint[]> => {
     try {
       // Obtenemos todos los documentos de la colección garbagePoints
-      const querySnapshot = await getDocs(collection(db, 'garbagePoints'));
+      // NUEVO: Ahora ordenados por fecha para identificar el más reciente
+      const q = query(
+        collection(db, 'garbagePoints'),
+        orderBy('createdAt', 'desc') // Ordenar por fecha
+      );
+      const querySnapshot = await getDocs(q);
       
       // Convertimos los documentos de Firebase a nuestro formato de datos
       const points: GarbagePoint[] = [];
+      let isFirst = true; // Para identificar el primer elemento (más reciente)
+      
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         
         // Validamos que los datos tengan la estructura esperada
         if (data.gps && data.gps.latitude && data.gps.longitude) {
+          // El primer elemento es nuestro último punto creado
+          if (isFirst) {
+            setLatestPointId(doc.id);
+            isFirst = false;
+          }
+          
           points.push({
             id: doc.id,
             gps: data.gps,
@@ -119,13 +133,26 @@ export default function GarbageMap() {
     const centerLat = userLocation?.latitude || -33.4489;
     const centerLng = userLocation?.longitude || -70.6693;
 
-    // Generamos los marcadores de basura en formato JavaScript
-    const garbageMarkersJS = garbagePoints.map(point => 
-      `L.marker([${point.gps.latitude}, ${point.gps.longitude}])
+    // NUEVO: Marcadores con lógica especial para el último creado
+    const garbageMarkersJS = garbagePoints.map(point => {
+      const isLatest = point.id === latestPointId;
+      const markerColor = isLatest ? '#00e6b8' : '#ff4444'; // Color especial para el último
+      const animationClass = isLatest ? 'pulse-marker' : '';
+      
+      return `
+        L.marker([${point.gps.latitude}, ${point.gps.longitude}], {
+          icon: L.divIcon({
+            className: 'custom-marker ${animationClass}',
+            html: '<div style="background-color: ${markerColor}; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 6px rgba(0,0,0,0.3);"></div>',
+            iconSize: [26, 26],
+            iconAnchor: [13, 13]
+          })
+        })
         .addTo(map)
-        .bindPopup("Basura reportada<br>ID: ${point.id}")
-        .openPopup();`
-    ).join('\n');
+        .bindPopup("${isLatest ? '✨ Último reporte' : 'Basura reportada'}<br>ID: ${point.id}")
+        ${isLatest ? '.openPopup()' : ''};
+      `;
+    }).join('\n');
 
     // Generamos el marcador del usuario si tenemos su ubicación
     const userMarkerJS = userLocation ? 
@@ -135,7 +162,7 @@ export default function GarbageMap() {
           iconSize: [20, 20],
           iconAnchor: [10, 10]
         })
-      }).addTo(map).bindPopup("Tu ubicación actual");` : '';
+      }).addTo(map).bindPopup("📍 Tu ubicación actual");` : '';
 
     return `
       <!DOCTYPE html>
@@ -148,6 +175,27 @@ export default function GarbageMap() {
         <style>
           body { margin: 0; padding: 0; }
           #map { height: 100vh; width: 100vw; }
+          
+          /* NUEVO: Animación de pulsación para el último marcador creado */
+          .pulse-marker {
+            animation: pulseAnimation 2s ease-in-out infinite;
+            animation-duration: 20s; /* 20 segundos como especificaste */
+          }
+          
+          @keyframes pulseAnimation {
+            0%, 100% { 
+              transform: scale(0.95); /* -5% del tamaño original */
+            }
+            50% { 
+              transform: scale(1.05); /* +5% del tamaño original */
+            }
+          }
+          
+          /* NUEVO: Estilos para marcadores personalizados */
+          .custom-marker {
+            background: transparent;
+            border: none;
+          }
         </style>
       </head>
       <body>
@@ -166,8 +214,16 @@ export default function GarbageMap() {
           // Añadimos el marcador del usuario
           ${userMarkerJS}
           
-          // Añadimos todos los marcadores de basura
+          // NUEVO: Añadimos todos los marcadores con animación especial para el último
           ${garbageMarkersJS}
+          
+          // NUEVO: Detener animación después de 20 segundos
+          setTimeout(() => {
+            const pulsingMarkers = document.querySelectorAll('.pulse-marker');
+            pulsingMarkers.forEach(marker => {
+              marker.classList.remove('pulse-marker');
+            });
+          }, 20000);
         </script>
       </body>
       </html>
@@ -178,7 +234,7 @@ export default function GarbageMap() {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#2e7d32" />
+        <ActivityIndicator size="large" color="#00ffcc" />
         <Text style={styles.loadingText}>Cargando mapa...</Text>
       </View>
     );
@@ -202,13 +258,6 @@ export default function GarbageMap() {
         startInLoadingState={true}
         scalesPageToFit={true}
       />
-      
-      {/* Información adicional sobre los puntos cargados */}
-      <View style={styles.infoBar}>
-        <Text style={styles.infoText}>
-          📍 {garbagePoints.length} punto{garbagePoints.length !== 1 ? 's' : ''} de basura
-        </Text>
-      </View>
     </View>
   );
 }
@@ -237,20 +286,5 @@ const styles = StyleSheet.create({
     color: '#d32f2f',
     textAlign: 'center',
     paddingHorizontal: 20,
-  },
-  infoBar: {
-    position: 'absolute',
-    top: 50,
-    left: 10,
-    right: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 8,
-    padding: 8,
-    alignItems: 'center',
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '500',
   },
 });

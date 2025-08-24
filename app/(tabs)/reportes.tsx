@@ -13,8 +13,7 @@ import {
 import { useGarbagePoints, type GarbagePoint } from '../../hooks/useGarbagePoints';
 
 export default function ReportesScreen() {
-  // Usar nuestro hook personalizado con tiempo real habilitado
-  // para que la lista se actualice automáticamente cuando se agreguen nuevos reportes
+  // Usar nuestro hook para obtener datos en tiempo real
   const { 
     garbagePoints, 
     loading, 
@@ -24,12 +23,11 @@ export default function ReportesScreen() {
     verifiedCount, 
     cleanedCount 
   } = useGarbagePoints({ 
-    realTime: true, // Actualizaciones en tiempo real
-    orderByField: 'createdAt' // Ordenar por fecha, más recientes primero
+    realTime: true,
+    orderByField: 'createdAt'
   });
 
   const formatDate = (date: Date | any): string => {
-    // Manejar tanto objetos Date como Timestamps de Firebase
     const dateObj = date?.toDate ? date.toDate() : date;
     
     if (!dateObj || !(dateObj instanceof Date)) {
@@ -47,9 +45,9 @@ export default function ReportesScreen() {
 
   const getStatusColor = (status: string = 'pending'): string => {
     switch (status) {
-      case 'verified': return '#4CAF50'; // Verde para verificado
-      case 'cleaned': return '#2196F3';  // Azul para limpiado
-      default: return '#FF9800';        // Naranja para pendiente
+      case 'verified': return '#4CAF50';
+      case 'cleaned': return '#2196F3';
+      default: return '#FF9800';
     }
   };
 
@@ -70,8 +68,6 @@ export default function ReportesScreen() {
   };
 
   const handleReportPress = (report: GarbagePoint) => {
-    // Mostrar detalles del reporte
-    // En el futuro, esto podría navegar a una pantalla de detalles
     Alert.alert(
       'Detalles del Reporte',
       `${getStatusIcon(report.status)} Estado: ${getStatusText(report.status)}\n\n` +
@@ -80,7 +76,6 @@ export default function ReportesScreen() {
       `🎯 Precisión GPS: ±${Math.round(report.gps.accuracy || 0)}m`,
       [
         { text: 'Ver en Mapa', onPress: () => {
-          // Aquí podrías navegar al mapa centrado en este punto
           console.log('Navegar a mapa con punto:', report.id);
         }},
         { text: 'Cerrar', style: 'cancel' }
@@ -89,8 +84,6 @@ export default function ReportesScreen() {
   };
 
   const calculateImpactScore = (): number => {
-    // Algoritmo simple para calcular "impacto" del usuario
-    // Limpiados valen más que verificados, verificados más que pendientes
     return (cleanedCount * 10) + (verifiedCount * 5) + (totalCount * 1);
   };
 
@@ -100,13 +93,11 @@ export default function ReportesScreen() {
       onPress={() => handleReportPress(item)}
       activeOpacity={0.7}
     >
-      {/* Imagen del reporte */}
       <View style={styles.imageContainer}>
         {item.photoUrl ? (
           <Image 
             source={{ uri: item.photoUrl }} 
             style={styles.reportImage}
-            // En lugar de defaultSource, usamos un estado para manejar errores de carga
             onError={() => console.log('Error cargando imagen:', item.photoUrl)}
           />
         ) : (
@@ -115,13 +106,11 @@ export default function ReportesScreen() {
           </View>
         )}
         
-        {/* Badge de estado con icono */}
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
           <Text style={styles.statusIcon}>{getStatusIcon(item.status)}</Text>
         </View>
       </View>
 
-      {/* Información del reporte */}
       <View style={styles.reportInfo}>
         <Text style={styles.reportDate}>{formatDate(item.createdAt)}</Text>
         <Text style={styles.reportLocation}>
@@ -137,7 +126,6 @@ export default function ReportesScreen() {
         )}
       </View>
 
-      {/* Flecha indicadora */}
       <Text style={styles.arrow}>›</Text>
     </TouchableOpacity>
   );
@@ -148,9 +136,6 @@ export default function ReportesScreen() {
       <Text style={styles.emptyTitle}>No hay reportes aún</Text>
       <Text style={styles.emptySubtitle}>
         ¡Toma tu primera foto de basura para comenzar a contribuir con tu comunidad!
-      </Text>
-      <Text style={styles.emptySubtitle}>
-        Cada reporte ayuda a mantener limpia nuestra ciudad.
       </Text>
     </View>
   );
@@ -173,7 +158,6 @@ export default function ReportesScreen() {
     </View>
   );
 
-  // Renderizado condicional principal
   if (loading && garbagePoints.length === 0) {
     return renderLoadingState();
   }
@@ -184,7 +168,7 @@ export default function ReportesScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header con estadísticas mejoradas */}
+      {/* Header con estadísticas */}
       <View style={styles.statsContainer}>
         <View style={styles.statsHeader}>
           <Text style={styles.statsTitle}>Tus Reportes</Text>
@@ -212,7 +196,6 @@ export default function ReportesScreen() {
           </View>
         </View>
 
-        {/* Mensaje motivacional */}
         {totalCount > 0 && (
           <Text style={styles.motivationalText}>
             {cleanedCount > 0 
@@ -231,15 +214,14 @@ export default function ReportesScreen() {
         ListEmptyComponent={renderEmptyState}
         refreshControl={
           <RefreshControl
-            refreshing={false} // El hook maneja su propio loading
+            refreshing={false}
             onRefresh={refresh}
-            tintColor="#00ffcc" // Tu color principal
-            colors={["#00ffcc"]} // Para Android
+            tintColor="#00ffcc"
+            colors={["#00ffcc"]}
           />
         }
         showsVerticalScrollIndicator={false}
         contentContainerStyle={garbagePoints.length === 0 ? styles.emptyList : styles.list}
-        // Optimizaciones de rendimiento para listas largas
         removeClippedSubviews={true}
         maxToRenderPerBatch={10}
         windowSize={10}
@@ -253,7 +235,7 @@ const { width } = Dimensions.get('window');
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff', // Fondo blanco
+    backgroundColor: '#ffffff',
   },
 
   // Header con estadísticas
@@ -277,7 +259,7 @@ const styles = StyleSheet.create({
   impactScore: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#00ffcc', // Tu color principal
+    color: '#00ffcc',
     backgroundColor: '#f0fffe',
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -316,7 +298,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  // Lista de reportes
+  // Lista
   list: {
     padding: 16,
   },
@@ -324,7 +306,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Item individual de reporte
+  // Items
   reportItem: {
     flexDirection: 'row',
     backgroundColor: '#ffffff',
@@ -341,7 +323,6 @@ const styles = StyleSheet.create({
     borderColor: '#f0f0f0',
   },
 
-  // Contenedor de imagen
   imageContainer: {
     position: 'relative',
     marginRight: 16,
@@ -364,7 +345,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
 
-  // Badge de estado
   statusBadge: {
     position: 'absolute',
     top: -6,
@@ -379,7 +359,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 
-  // Información del reporte
   reportInfo: {
     flex: 1,
   },
@@ -404,14 +383,13 @@ const styles = StyleSheet.create({
     color: '#999999',
   },
 
-  // Flecha
   arrow: {
     fontSize: 20,
     color: '#cccccc',
     marginLeft: 8,
   },
 
-  // Estados especiales
+  // Estados
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
